@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales AI Assistant</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #0d0d0d;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #242424;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --text-muted: #606060;
+            --accent-primary: #0066ff;
+            --accent-hover: #0052cc;
+            --success: #00c853;
+            --warning: #ff9500;
+            --error: #ff3b30;
+            --border: #2a2a2a;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+        }
+        
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow: hidden;
+        }
+        
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 900px;
+            margin: 0 auto;
+            border-left: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            background: var(--bg-secondary);
+        }
+        
+        /* Header */
+        .header {
+            padding: 20px 24px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, #0052cc 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+        }
+        
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        
+        .session-info {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--bg-tertiary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Technical Mode Toggle */
+        .tech-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .tech-toggle input[type="checkbox"] {
+            cursor: pointer;
+        }
+        
+        /* Technical elements - hidden by default */
+        body:not(.tech-mode) .processing-steps,
+        body:not(.tech-mode) .query-card,
+        body:not(.tech-mode) .result-badge {
+            display: none !important;
+        }
+        
+        /* Show when tech mode is enabled */
+        body.tech-mode .processing-steps {
+            display: flex !important;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 8px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        body.tech-mode .query-card {
+            display: block !important;
+        }
+        
+        body.tech-mode .result-badge {
+            display: inline-flex !important;
+        }
+        
+        /* Chat Container */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .chat-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .chat-container::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+        
+        .chat-container::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+        
+        .chat-container::-webkit-scrollbar-thumb:hover {
+            background: #333;
+        }
+        
+        /* Message Bubbles */
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: messageSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        @keyframes messageSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .message.assistant .message-avatar {
+            background: linear-gradient(135deg, var(--accent-primary) 0%, #0052cc 100%);
+        }
+        
+        .message-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .message-text {
+            background: var(--bg-tertiary);
+            padding: 16px 18px;
+            border-radius: 12px;
+            font-size: 15px;
+            line-height: 1.6;
+            border: 1px solid var(--border);
+        }
+        
+        .message.user .message-text {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+        
+        .message.assistant .message-text {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+            border-left: 3px solid var(--accent-primary);
+            padding-left: 18px;
+        }
+        
+        /* Insights Card - Professional */
+        .insights-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-left: 3px solid var(--accent-primary);
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-top: 12px;
+            position: relative;
+        }
+        
+        .insights-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .insights-icon {
+            font-size: 20px;
+            filter: drop-shadow(0 0 8px rgba(0, 102, 255, 0.3));
+        }
+        
+        .insights-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.3px;
+        }
+        
+        .insights-content {
+            font-size: 15px;
+            line-height: 1.7;
+            color: var(--text-primary);
+        }
+        
+        .insights-content p {
+            margin: 0 0 12px 0;
+        }
+        
+        .insights-content p:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* Clean Loading Indicator for Clients */
+        .thinking-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-top: 8px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .thinking-dots {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .thinking-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            animation: thinkingPulse 1.4s ease-in-out infinite;
+        }
+        
+        .thinking-dot:nth-child(1) { animation-delay: 0s; }
+        .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+        .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes thinkingPulse {
+            0%, 80%, 100% { 
+                opacity: 0.3;
+                transform: scale(0.8);
+            }
+            40% { 
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+        
+        .thinking-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        /* Step styles for tech mode */
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 6px;
+            border: 1px solid transparent;
+            animation: stepFadeIn 0.3s ease;
+            transition: all 0.2s ease;
+        }
+        
+        @keyframes stepFadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .step-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+            font-size: 10px;
+        }
+        
+        .step.active {
+            background: rgba(0, 102, 255, 0.08);
+            border-color: rgba(0, 102, 255, 0.2);
+            color: var(--text-primary);
+        }
+        
+        .step.active .step-icon {
+            background: var(--accent-primary);
+            box-shadow: 0 0 12px rgba(0, 102, 255, 0.4);
+            animation: pulse 1.5s infinite;
+        }
+        
+        .step.active .step-icon::after {
+            content: '⚡';
+        }
+        
+        .step.complete {
+            background: rgba(0, 200, 83, 0.08);
+            border-color: rgba(0, 200, 83, 0.2);
+        }
+        
+        .step.complete .step-icon {
+            background: var(--success);
+            box-shadow: 0 0 8px rgba(0, 200, 83, 0.3);
+        }
+        
+        .step.complete .step-icon::after {
+            content: '✓';
+            color: white;
+        }
+        
+        .step.error .step-icon {
+            background: var(--error);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+        
+        /* Processing Steps - Hidden by default for clients */
+        .processing-steps {
+            display: none; /* Hidden for non-technical clients */
+        }
+        
+        /* Query Card - Hidden by default for clients */
+        .query-card {
+            display: none; /* Hidden for non-technical clients */
+        }
+        
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 6px;
+            border: 1px solid transparent;
+            animation: stepFadeIn 0.3s ease;
+            transition: all 0.2s ease;
+        }
+        
+        @keyframes stepFadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .step-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+            font-size: 10px;
+        }
+        
+        .step.active {
+            background: rgba(0, 102, 255, 0.08);
+            border-color: rgba(0, 102, 255, 0.2);
+            color: var(--text-primary);
+        }
+        
+        .step.active .step-icon {
+            background: var(--accent-primary);
+            box-shadow: 0 0 12px rgba(0, 102, 255, 0.4);
+            animation: pulse 1.5s infinite;
+        }
+        
+        .step.active .step-icon::after {
+            content: '⚡';
+        }
+        
+        .step.complete {
+            background: rgba(0, 200, 83, 0.08);
+            border-color: rgba(0, 200, 83, 0.2);
+        }
+        
+        .step.complete .step-icon {
+            background: var(--success);
+            box-shadow: 0 0 8px rgba(0, 200, 83, 0.3);
+        }
+        
+        .step.complete .step-icon::after {
+            content: '✓';
+            color: white;
+        }
+        
+        .step.error .step-icon {
+            background: var(--error);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+        
+        /* SQL Display - Professional Client View */
+        .query-card {
+            background: linear-gradient(135deg, rgba(0, 102, 255, 0.05) 0%, rgba(0, 102, 255, 0.02) 100%);
+            border: 1px solid rgba(0, 102, 255, 0.2);
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin-top: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .query-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-primary), transparent);
+        }
+        
+        .query-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .query-icon {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, #0052cc 100%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        
+        .query-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.3px;
+        }
+        
+        .sql-display {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 14px 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #a8d5ff;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        .sql-display::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .sql-display::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+        }
+        
+        .sql-display::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        
+        /* SQL Syntax Highlighting */
+        .sql-keyword {
+            color: #ff79c6;
+            font-weight: 600;
+        }
+        
+        .sql-function {
+            color: #50fa7b;
+        }
+        
+        .sql-string {
+            color: #f1fa8c;
+        }
+        
+        .sql-table {
+            color: #8be9fd;
+        }
+        
+        /* Result Count Badge - Subtle for clients */
+        .result-badge {
+            display: none; /* Hidden by default - clients don't need to see technical row counts */
+        }
+        
+        /* If you want to show it, uncomment the line above and use this styling: */
+        /*
+        .result-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, rgba(0, 200, 83, 0.15) 0%, rgba(0, 200, 83, 0.05) 100%);
+            border: 1px solid rgba(0, 200, 83, 0.3);
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            color: var(--text-primary);
+            font-weight: 500;
+            margin-top: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        */
+        
+        .result-badge::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--success), transparent);
+        }
+        
+        .result-badge-icon {
+            font-size: 18px;
+            filter: drop-shadow(0 0 8px rgba(0, 200, 83, 0.4));
+        }
+        
+        .result-badge-label {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+        
+        .result-badge-number {
+            color: var(--success);
+            font-weight: 700;
+            font-size: 18px;
+            margin: 0 4px;
+        }
+        
+        /* Error Message */
+        .error-message {
+            background: rgba(255, 59, 48, 0.1);
+            border: 1px solid rgba(255, 59, 48, 0.3);
+            border-radius: 8px;
+            padding: 14px 16px;
+            color: #ff6b6b;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        
+        /* Input Area */
+        .input-area {
+            padding: 20px 24px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+        }
+        
+        .input-container {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+        
+        #questionInput {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            resize: none;
+            outline: none;
+            transition: all 0.2s ease;
+            max-height: 120px;
+        }
+        
+        #questionInput:focus {
+            border-color: var(--accent-primary);
+            background: var(--bg-secondary);
+        }
+        
+        #questionInput::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .send-button {
+            padding: 14px 24px;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .send-button:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+        
+        .send-button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        
+        .send-button:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+        
+        /* Loading State */
+        .loading-dots {
+            display: inline-flex;
+            gap: 4px;
+        }
+        
+        .loading-dots span {
+            width: 6px;
+            height: 6px;
+            background: currentColor;
+            border-radius: 50%;
+            animation: loadingDot 1.4s infinite ease-in-out;
+        }
+        
+        .loading-dots span:nth-child(1) { animation-delay: 0s; }
+        .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes loadingDot {
+            0%, 80%, 100% { opacity: 0.3; }
+            40% { opacity: 1; }
+        }
+        
+        /* Welcome State */
+        .welcome-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .welcome-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, #0052cc 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+        
+        .welcome-title {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        
+        .welcome-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            max-width: 400px;
+        }
+        
+        .example-questions {
+            display: grid;
+            gap: 12px;
+            width: 100%;
+            max-width: 500px;
+            margin-top: 16px;
+        }
+        
+        .example-question {
+            padding: 14px 18px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .example-question:hover {
+            background: var(--bg-primary);
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
+            transform: translateY(-2px);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .app-container {
+                border: none;
+            }
+            
+            .header {
+                padding: 16px 20px;
+            }
+            
+            .chat-container {
+                padding: 20px;
+            }
+            
+            .input-area {
+                padding: 16px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">S</div>
+                <div class="logo-text">Sales AI</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <!-- Technical Mode Toggle (Hidden by default) -->
+                <label class="tech-toggle" style="display: none;" title="Show technical details">
+                    <input type="checkbox" id="techModeToggle" onchange="toggleTechMode()">
+                    <span style="font-size: 11px; color: var(--text-muted);">Tech Mode</span>
+                </label>
+                <div class="session-info" id="sessionInfo">Initializing...</div>
+            </div>
+        </div>
+        
+        <!-- Chat Container -->
+        <div class="chat-container" id="chatContainer">
+            <!-- Welcome State -->
+            <div class="welcome-state" id="welcomeState">
+                <div class="welcome-icon">💼</div>
+                <div>
+                    <div class="welcome-title">Sales AI Assistant</div>
+                    <div class="welcome-subtitle">Ask me anything about your sales data. I'll analyze it and provide insights instantly.</div>
+                </div>
+                <div class="example-questions">
+                    <div class="example-question" onclick="askExample('What are the top 5 products by sales?')">
+                        What are the top 5 products by sales?
+                    </div>
+                    <div class="example-question" onclick="askExample('Show me sales by brand for this month')">
+                        Show me sales by brand for this month
+                    </div>
+                    <div class="example-question" onclick="askExample('Which clients have the highest volume?')">
+                        Which clients have the highest volume?
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Input Area -->
+        <div class="input-area">
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <textarea 
+                        id="questionInput" 
+                        placeholder="Ask a question about your sales data..."
+                        rows="1"
+                        onkeydown="handleKeyPress(event)"
+                    ></textarea>
+                </div>
+                <button class="send-button" id="sendButton" onclick="sendQuestion()">
+                    <span id="sendButtonText">Send</span>
+                    <span id="sendButtonIcon">→</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let sessionId = null;
+        let isProcessing = false;
+        let currentMessageElement = null;
+        
+        // Initialize session on load
+        async function initSession() {
+            try {
+                const response = await fetch('http://localhost:8000/session', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                sessionId = data.session_id;
+                document.getElementById('sessionInfo').textContent = `Session: ${sessionId.substring(0, 8)}`;
+            } catch (error) {
+                console.error('Failed to create session:', error);
+                document.getElementById('sessionInfo').textContent = 'Session: Error';
+            }
+        }
+        
+        // Auto-resize textarea
+        const textarea = document.getElementById('questionInput');
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+        
+        // Handle Enter key
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendQuestion();
+            }
+        }
+        
+        // Ask example question
+        function askExample(question) {
+            document.getElementById('questionInput').value = question;
+            sendQuestion();
+        }
+        
+        // Send question
+        async function sendQuestion() {
+            const input = document.getElementById('questionInput');
+            const question = input.value.trim();
+            
+            if (!question || isProcessing) return;
+            
+            // Hide welcome state
+            const welcomeState = document.getElementById('welcomeState');
+            if (welcomeState) {
+                welcomeState.style.display = 'none';
+            }
+            
+            // Clear input
+            input.value = '';
+            input.style.height = 'auto';
+            
+            // Add user message
+            addUserMessage(question);
+            
+            // Disable input
+            isProcessing = true;
+            updateSendButton(true);
+            
+            // Create assistant message container
+            currentMessageElement = createAssistantMessage();
+            
+            try {
+                const response = await fetch('http://localhost:8000/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        question: question,
+                        session_id: sessionId
+                    })
+                });
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = JSON.parse(line.substring(6));
+                            handleStreamEvent(data);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Failed to process question. Please try again.');
+            } finally {
+                isProcessing = false;
+                updateSendButton(false);
+            }
+        }
+        
+        // Handle stream events
+        function handleStreamEvent(data) {
+            const { type } = data;
+            
+            if (type === 'session') {
+                sessionId = data.session_id;
+            } else if (type === 'step') {
+                // Only show in tech mode
+                if (document.body.classList.contains('tech-mode')) {
+                    addProcessingStep(data.step);
+                }
+            } else if (type === 'sql') {
+                // Only show in tech mode
+                if (document.body.classList.contains('tech-mode')) {
+                    showSQL(data.query);
+                }
+            } else if (type === 'count') {
+                showResultCount(data.rows);
+            } else if (type === 'response') {
+                showResponse(data.text);
+            } else if (type === 'error') {
+                showError(data.message);
+            } else if (type === 'complete') {
+                completeProcessing();
+            }
+        }
+        
+        // Toggle technical mode
+        function toggleTechMode() {
+            const isEnabled = document.getElementById('techModeToggle').checked;
+            if (isEnabled) {
+                document.body.classList.add('tech-mode');
+                console.log('Technical mode enabled - showing SQL queries and processing steps');
+            } else {
+                document.body.classList.remove('tech-mode');
+                console.log('Technical mode disabled - client-friendly view');
+            }
+        }
+        
+        // Add user message
+        function addUserMessage(text) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+            messageDiv.innerHTML = `
+                <div class="message-avatar">👤</div>
+                <div class="message-content">
+                    <div class="message-text">${escapeHtml(text)}</div>
+                </div>
+            `;
+            chatContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
+        // Create assistant message with appropriate loading indicator
+        function createAssistantMessage() {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant';
+            
+            // In tech mode, show processing steps container
+            // In client mode, show simple thinking indicator
+            const isTechMode = document.body.classList.contains('tech-mode');
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    ${isTechMode ? '<div class="processing-steps"></div>' : `
+                    <div class="thinking-indicator">
+                        <div class="thinking-dots">
+                            <div class="thinking-dot"></div>
+                            <div class="thinking-dot"></div>
+                            <div class="thinking-dot"></div>
+                        </div>
+                        <div class="thinking-text">Analyzing your request...</div>
+                    </div>`}
+                </div>
+            `;
+            chatContainer.appendChild(messageDiv);
+            scrollToBottom();
+            return messageDiv;
+        }
+        
+        // Add processing step
+        function addProcessingStep(stepText) {
+            if (!currentMessageElement) return;
+            
+            const stepsContainer = currentMessageElement.querySelector('.processing-steps');
+            const stepDiv = document.createElement('div');
+            stepDiv.className = 'step active';
+            stepDiv.innerHTML = `
+                <div class="step-icon"></div>
+                <div>${stepText}</div>
+            `;
+            stepsContainer.appendChild(stepDiv);
+            scrollToBottom();
+        }
+        
+        // Show SQL query with syntax highlighting
+        function showSQL(query) {
+            if (!currentMessageElement) return;
+            
+            // Add syntax highlighting
+            const highlightedSQL = highlightSQL(query);
+            
+            const content = currentMessageElement.querySelector('.message-content');
+            const sqlCard = document.createElement('div');
+            sqlCard.className = 'query-card';
+            sqlCard.innerHTML = `
+                <div class="query-header">
+                    <div class="query-icon">⚡</div>
+                    <div class="query-title">Database Query</div>
+                </div>
+                <div class="sql-display">${highlightedSQL}</div>
+            `;
+            content.appendChild(sqlCard);
+            scrollToBottom();
+        }
+        
+        // SQL Syntax Highlighter
+        function highlightSQL(sql) {
+            // Keywords
+            const keywords = ['SELECT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER', 'ON', 'AS', 'AND', 'OR', 'IN', 'NOT', 'LIKE', 'BETWEEN', 'HAVING', 'DISTINCT', 'COUNT', 'ASC', 'DESC'];
+            
+            // Functions
+            const functions = ['SUM', 'AVG', 'COUNT', 'MAX', 'MIN', 'ROUND', 'UPPER', 'LOWER', 'LENGTH', 'SUBSTR'];
+            
+            let highlighted = escapeHtml(sql);
+            
+            // Highlight keywords
+            keywords.forEach(keyword => {
+                const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+                highlighted = highlighted.replace(regex, match => `<span class="sql-keyword">${match}</span>`);
+            });
+            
+            // Highlight functions
+            functions.forEach(func => {
+                const regex = new RegExp(`\\b${func}\\b`, 'gi');
+                highlighted = highlighted.replace(regex, match => `<span class="sql-function">${match}</span>`);
+            });
+            
+            // Highlight strings (single quotes)
+            highlighted = highlighted.replace(/'([^']*)'/g, '<span class="sql-string">\'$1\'</span>');
+            
+            // Highlight table/column names (words after FROM, JOIN, or in SELECT that aren't keywords)
+            highlighted = highlighted.replace(/FROM\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi, 'FROM <span class="sql-table">$1</span>');
+            
+            return highlighted;
+        }
+        
+        // Show result count with professional badge
+        function showResultCount(count) {
+            if (!currentMessageElement) return;
+            
+            const content = currentMessageElement.querySelector('.message-content');
+            const badgeDiv = document.createElement('div');
+            badgeDiv.className = 'result-badge';
+            badgeDiv.innerHTML = `
+                <span class="result-badge-icon">✓</span>
+                <span class="result-badge-label">Retrieved</span>
+                <span class="result-badge-number">${count.toLocaleString()}</span>
+                <span class="result-badge-label">${count === 1 ? 'record' : 'records'}</span>
+            `;
+            content.appendChild(badgeDiv);
+            scrollToBottom();
+        }
+        
+        // Show response with professional insights card
+        function showResponse(text) {
+            if (!currentMessageElement) return;
+            
+            const content = currentMessageElement.querySelector('.message-content');
+            const insightsCard = document.createElement('div');
+            insightsCard.className = 'insights-card';
+            
+            // Format text into paragraphs
+            const paragraphs = text.split('\n\n').filter(p => p.trim());
+            const formattedContent = paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
+            
+            insightsCard.innerHTML = `
+                <div class="insights-header">
+                    <span class="insights-icon">💡</span>
+                    <span class="insights-title">Analysis & Insights</span>
+                </div>
+                <div class="insights-content">
+                    ${formattedContent}
+                </div>
+            `;
+            content.appendChild(insightsCard);
+            scrollToBottom();
+        }
+        
+        // Show error
+        function showError(message) {
+            if (!currentMessageElement) return;
+            
+            const content = currentMessageElement.querySelector('.message-content');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            content.appendChild(errorDiv);
+            scrollToBottom();
+        }
+        
+        // Complete processing - clean up loading indicators
+        function completeProcessing() {
+            if (!currentMessageElement) return;
+            
+            const isTechMode = document.body.classList.contains('tech-mode');
+            
+            if (isTechMode) {
+                // Mark all steps as complete in tech mode
+                const steps = currentMessageElement.querySelectorAll('.step');
+                steps.forEach(step => {
+                    step.classList.remove('active');
+                    step.classList.add('complete');
+                });
+            } else {
+                // Remove thinking indicator in client mode
+                const thinkingIndicator = currentMessageElement.querySelector('.thinking-indicator');
+                if (thinkingIndicator) {
+                    thinkingIndicator.remove();
+                }
+            }
+        }
+        
+        // Update send button
+        function updateSendButton(isLoading) {
+            const button = document.getElementById('sendButton');
+            const textSpan = document.getElementById('sendButtonText');
+            const iconSpan = document.getElementById('sendButtonIcon');
+            
+            if (isLoading) {
+                button.disabled = true;
+                textSpan.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+                iconSpan.style.display = 'none';
+            } else {
+                button.disabled = false;
+                textSpan.textContent = 'Send';
+                iconSpan.style.display = 'inline';
+            }
+        }
+        
+        // Utility functions
+        function scrollToBottom() {
+            const container = document.getElementById('chatContainer');
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Initialize on load
+        initSession();
+    </script>
+</body>
+</html>
